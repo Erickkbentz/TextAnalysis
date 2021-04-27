@@ -1,8 +1,10 @@
 from statistics import mean
 
+import PIL
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import numpy as np
+from PIL.Image import Image
 from pdfreader import SimplePDFViewer, PageDoesNotExist
 from nltk.sentiment import SentimentIntensityAnalyzer
 import nltk
@@ -47,7 +49,7 @@ def split_into_sentences(text):
 
 def is_adjective(word, pos):
     skip = ["now", "later", "last", "first", "many", "most", "then", "new", "also", "other", "even",
-            "so", "just", "never", "more", "as", "top", "only", "least", "same", "well", "few", "such", "own"]
+            "so", "just", "never", "more", "as", "top", "only", "least", "same", "well", "few", "such", "own", "Julian"]
     if skip.__contains__(word):
         return False
     if pos == 'JJ' or pos == 'JJS' or pos == 'JJR':
@@ -409,7 +411,7 @@ def main():
                             "Negative: {:0.2f}%".format(avg_title_sent_n['neg'] * 100),
                             "Neutral: {:0.2f}%".format(avg_title_sent_n['neu'] * 100),
                             "Neutral: {:0.2f}%".format(avg_title_sent_n['pos'] * 100),
-                            "Positive: {:0.2f}%".format(avg_title_sent_n['compound'] * 100),
+                            "Compound: {:0.2f}%".format(avg_title_sent_n['compound'] * 100),
                             "",
                             "Negative: {:0.2f}%".format(avg_title_sent_a['neg'] * 100),
                             "Neutral: {:0.2f}%".format(avg_title_sent_a['neu'] * 100),
@@ -432,6 +434,14 @@ def main():
     ])
     fig2.write_image("AssangeSent_vs_NavalnySent.png")
     fig2.show()
+
+    im1 = PIL.Image.open('navalAdjWords.png')
+    im2 = PIL.Image.open('assangeAdjWords.png')
+
+    dst = PIL.Image.new('RGB', (im1.width + im2.width, min(im1.height, im2.height)))
+    dst.paste(im1, (0, 0))
+    dst.paste(im2, (im1.width, 0))
+    dst.save('Naval&AssangeAdj.png')
 
 
 if __name__ == '__main__':
