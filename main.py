@@ -3,7 +3,7 @@ import numpy as np
 from pdfreader import SimplePDFViewer, PageDoesNotExist
 from nltk.sentiment import SentimentIntensityAnalyzer
 import nltk
-from nltk import word_tokenize
+from nltk import word_tokenize, FreqDist
 from collections import Counter
 import re
 
@@ -80,7 +80,7 @@ def split_bodies(path):
     return bodies
 
 
-def descriptors_chart(counter, title, path):
+def adjectives_chart(counter, title, path):
     a_keys = counter.keys()
     y_pos = np.arange(len(a_keys))
     # get the counts for each key, assuming the values are numerical
@@ -95,10 +95,9 @@ def descriptors_chart(counter, title, path):
     plt.show()
 
 
-def get_sentiment_analysis_for_paragraph(paragraph):
+def get_sentiment_analysis_for_article(paragraph):
     sentiment_list = []
     str_list = split_into_sentences(paragraph)
-    print(str_list)
     sia = SentimentIntensityAnalyzer()
 
     for string in str_list:
@@ -109,33 +108,70 @@ def get_sentiment_analysis_for_paragraph(paragraph):
 
 
 def main():
+    # ------------------------------------------------NAVALNY----------------------------------------------------------
     navalny_article_list = split_bodies("articles/NavalnyParagraphs.txt")
     count_navalny = Counter()
 
+    navalny_article_word_count = []
+    navalny_entire_sentiment_list = []
+
     for article in navalny_article_list:
+        # append sentence sentiment list
+        navalny_entire_sentiment_list.append(get_sentiment_analysis_for_article(article))
+        # get word count
         token_words = word_tokenize(article)
+        navalny_article_word_count.append(len(token_words))
+        # get pos of words and find adjectives
         navalny_tagged = nltk.pos_tag(token_words)
         count_navalny.update(word for (word, pos) in navalny_tagged if is_adjective(word, pos))
+
+    print("Navalny word count per article: {}".format(navalny_article_word_count))
 
     navalny_d = {}
     for k, v in count_navalny.most_common(25):
         navalny_d[k] = v
 
-    descriptors_chart(navalny_d, "Navalny - 25 most used adjectives in articles", "navalAdjWords.png")
+    adjectives_chart(navalny_d, "Navalny - 25 most used adjectives in articles", "navalAdjWords.png")
 
+    # Table calculations and creation
+    sum = 0
+    for count in navalny_article_word_count:
+        sum += count
+
+    navalny_avg_word_count = (sum // len(navalny_article_word_count))
+    print("Navalny avg word count: {}".format(navalny_avg_word_count))
+
+    # ------------------------------------------------ASSANGE----------------------------------------------------------
     assange_article_list = split_bodies("articles/AssangeParagraphs.txt")
     count_assange = Counter()
 
+    assange_article_word_count = []
+    assange_entire_sentiment_list = []
+
     for article in assange_article_list:
+        # append sentence sentiment list
+        navalny_entire_sentiment_list.append(get_sentiment_analysis_for_article(article))
+        # append word count
         token_words = word_tokenize(article)
+        assange_article_word_count.append(len(token_words))
+        # get pos of words and find adjectives
         assange_tagged = nltk.pos_tag(token_words)
         count_assange.update(word for (word, pos) in assange_tagged if is_adjective(word, pos))
 
+    print("Assange word count per article: {}".format(assange_article_word_count))
     assange_d = {}
     for k, v in count_assange.most_common(25):
         assange_d[k] = v
 
-    descriptors_chart(assange_d, "Assange - 25 most used adjectives in articles", "assangeAdjWords.png")
+    adjectives_chart(assange_d, "Assange - 25 most used adjectives in articles", "assangeAdjWords.png")
+
+    # Table calculations and creation
+    sum = 0
+    for count in assange_article_word_count:
+        sum += count
+
+    assange_avg_word_count = (sum // len(assange_article_word_count))
+    print("Assange avg word count: {}".format(assange_avg_word_count))
 
 
 if __name__ == '__main__':
