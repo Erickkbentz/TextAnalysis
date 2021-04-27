@@ -3,7 +3,7 @@ import numpy as np
 from pdfreader import SimplePDFViewer, PageDoesNotExist
 from nltk.sentiment import SentimentIntensityAnalyzer
 import nltk
-from nltk import word_tokenize, FreqDist
+from nltk import word_tokenize
 from collections import Counter
 import re
 
@@ -109,7 +109,7 @@ def get_sentiment_analysis_for_article(paragraph):
 
 def main():
     # ------------------------------------------------NAVALNY----------------------------------------------------------
-    navalny_article_list = split_bodies("articles/NavalnyParagraphs.txt")
+    navalny_article_list = split_bodies("articles/navalny/NavalnyParagraphs.txt")
     count_navalny = Counter()
 
     navalny_article_word_count = []
@@ -142,7 +142,7 @@ def main():
     print("Navalny avg word count: {}".format(navalny_avg_word_count))
 
     # ------------------------------------------------ASSANGE----------------------------------------------------------
-    assange_article_list = split_bodies("articles/AssangeParagraphs.txt")
+    assange_article_list = split_bodies("articles/assange/AssangeParagraphs.txt")
     count_assange = Counter()
 
     assange_article_word_count = []
