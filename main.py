@@ -1,4 +1,7 @@
+from statistics import mean
+
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 import numpy as np
 from pdfreader import SimplePDFViewer, PageDoesNotExist
 from nltk.sentiment import SentimentIntensityAnalyzer
@@ -107,6 +110,47 @@ def get_sentiment_analysis_for_article(paragraph):
     return sentiment_list
 
 
+def get_doc_type_count(path):
+    f = open(path, "r+")
+    list_type = f.read().split("\n")
+    f.close()
+    return Counter(list_type)
+
+
+def get_page_list(path):
+    f = open(path, "r+")
+
+    page_list = []
+    for line in f:
+        line = line.strip()
+        if line != "n/a":
+            page_list.append(int(line))
+    f.close()
+    return page_list
+
+
+def get_avg_title_sent(path):
+    f = open(path, "r+")
+
+    count = 0
+    neg = 0.0
+    pos = 0.0
+    neu = 0.0
+    com = 0.0
+    sia = SentimentIntensityAnalyzer()
+    for line in f:
+        count += 1
+        sent = sia.polarity_scores(line)
+        neg += sent['neg']
+        pos += sent['pos']
+        neu += sent['neu']
+        com += sent['compound']
+
+    f.close()
+    avg_title_sent = {'neg': (neg / count), 'pos': (pos / count), 'neu': (neu / count), 'compound': (com / count)}
+    return avg_title_sent
+
+
 def main():
     # ------------------------------------------------NAVALNY----------------------------------------------------------
     navalny_article_list = split_bodies("articles/navalny/NavalnyParagraphs.txt")
@@ -125,21 +169,101 @@ def main():
         navalny_tagged = nltk.pos_tag(token_words)
         count_navalny.update(word for (word, pos) in navalny_tagged if is_adjective(word, pos))
 
-    print("Navalny word count per article: {}".format(navalny_article_word_count))
-
     navalny_d = {}
     for k, v in count_navalny.most_common(25):
         navalny_d[k] = v
 
     adjectives_chart(navalny_d, "Navalny - 25 most used adjectives in articles", "navalAdjWords.png")
 
-    # Table calculations and creation
+    # -----------------------------------------Calculations for Table---------------------------------------------------
+    print("\n----------------------------------Navalny--------------------------------------")
+    print("25 Most common Adj: {}\n".format(navalny_d))
+    # Avg word Count
     sum = 0
     for count in navalny_article_word_count:
         sum += count
 
     navalny_avg_word_count = (sum // len(navalny_article_word_count))
-    print("Navalny avg word count: {}".format(navalny_avg_word_count))
+    print("Navalny avg word count: {}\n".format(navalny_avg_word_count))
+
+    # Avg sentiment intensity per article
+    naval_total_neg = 0.0
+    naval_total_neu = 0.0
+    naval_total_pos = 0.0
+    naval_total_com = 0.0
+    naval_sent_count = 0
+
+    naval_article_sentiments = []
+    for article_sentiment in navalny_entire_sentiment_list:
+        article_sent_count = 0
+        article_neg = 0.0
+        article_neu = 0.0
+        article_pos = 0.0
+        article_com = 0.0
+        for sentence_sentiment in article_sentiment:
+            article_sent_count += 1
+            naval_sent_count += 1
+            naval_total_neg += sentence_sentiment['neg']
+            article_neg += sentence_sentiment['neg']
+
+            naval_total_pos += sentence_sentiment['pos']
+            article_pos += sentence_sentiment['pos']
+
+            naval_total_neu += sentence_sentiment['neu']
+            article_neu += sentence_sentiment['neu']
+
+            naval_total_com += sentence_sentiment['compound']
+            article_com += sentence_sentiment['compound']
+
+        naval_article_sentiments.append({'neg': (article_neg / article_sent_count),
+                                         'neu': (article_neu / article_sent_count),
+                                         'pos': (article_pos / article_sent_count),
+                                         'compound': (article_com / article_sent_count)})
+
+    count = len(naval_article_sentiments)
+    neg = 0.0
+    neu = 0.0
+    pos = 0.0
+    com = 0.0
+
+    for article_sentiment_avg in naval_article_sentiments:
+        neg += article_sentiment_avg['neg']
+        neu += article_sentiment_avg['neu']
+        pos += article_sentiment_avg['pos']
+        com += article_sentiment_avg['compound']
+    """
+    print("AVERAGE SENTIMENT INTENSITY OF EACH ARTICLE")
+    print("Average [neg]: {}".format((neg / count)))
+    print("Average [neu]: {}".format((neu / count)))
+    print("Average [pos]: {}".format((pos / count)))
+    print("Average [com]: {}".format((com / count)))
+    """
+    print("\nAVERAGE SENTIMENT INTENSITY OF EACH SENTENCE")
+    print("Average [neg]: {}".format((naval_total_neg / naval_sent_count)))
+    print("Average [neu]: {}".format((naval_total_neu / naval_sent_count)))
+    print("Average [pos]: {}".format((naval_total_pos / naval_sent_count)))
+    print("Average [com]: {}".format((naval_total_com / naval_sent_count)))
+
+    naval_avg_sentence_sent = {'neg': naval_total_neg / naval_sent_count,
+                               'neu': naval_total_neu / naval_sent_count,
+                               'pos': naval_total_pos / naval_sent_count,
+                               'compound': naval_total_com / naval_sent_count}
+
+    avg_title_sent_n = get_avg_title_sent("articles/navalny/NavalnyTitles.txt")
+    print("\nAVERAGE TITLE SENTIMENT:\nAverage [neg]: {}\nAverage [neu]: {}\nAverage [pos]: {}\nAverage [com]: {}\n"
+          .format(avg_title_sent_n['neg'], avg_title_sent_n['neu'], avg_title_sent_n['pos'],
+                  avg_title_sent_n['compound']))
+
+    # Number of doc Types
+    doc_types = get_doc_type_count("articles/navalny/NavalnyDocumentType.txt")
+    print(doc_types)
+
+    # page location
+    page_list_n = get_page_list("articles/navalny/NavalnyPages.txt")
+    page_count_n = Counter(page_list_n)
+    print("\nNavalny Times Appearing on Certain Page (most Common 10):\n{}".format(page_count_n.most_common(10)))
+    avg_page_n = mean(page_list_n)
+    print("\nNavalny avg page location: {}".format(avg_page_n))
 
     # ------------------------------------------------ASSANGE----------------------------------------------------------
     assange_article_list = split_bodies("articles/assange/AssangeParagraphs.txt")
@@ -150,7 +274,7 @@ def main():
 
     for article in assange_article_list:
         # append sentence sentiment list
-        navalny_entire_sentiment_list.append(get_sentiment_analysis_for_article(article))
+        assange_entire_sentiment_list.append(get_sentiment_analysis_for_article(article))
         # append word count
         token_words = word_tokenize(article)
         assange_article_word_count.append(len(token_words))
@@ -158,20 +282,156 @@ def main():
         assange_tagged = nltk.pos_tag(token_words)
         count_assange.update(word for (word, pos) in assange_tagged if is_adjective(word, pos))
 
-    print("Assange word count per article: {}".format(assange_article_word_count))
     assange_d = {}
     for k, v in count_assange.most_common(25):
         assange_d[k] = v
 
     adjectives_chart(assange_d, "Assange - 25 most used adjectives in articles", "assangeAdjWords.png")
 
-    # Table calculations and creation
+    # -----------------------------------------Calculations for Table---------------------------------------------------
+    print("\n----------------------------------ASSANGE--------------------------------------")
+    print("25 Most common Adj: {}\n".format(assange_d))
+
     sum = 0
     for count in assange_article_word_count:
         sum += count
 
     assange_avg_word_count = (sum // len(assange_article_word_count))
-    print("Assange avg word count: {}".format(assange_avg_word_count))
+    print("Assange avg word count: {}\n".format(assange_avg_word_count))
+
+    # Avg sentiment intensity per article
+    assange_total_neg = 0.0
+    assange_total_neu = 0.0
+    assange_total_pos = 0.0
+    assange_total_com = 0.0
+    assange_sent_count = 0
+
+    assange_article_sentiments = []
+    for article_sentiment in assange_entire_sentiment_list:
+        article_sent_count = 0
+        article_neg = 0.0
+        article_neu = 0.0
+        article_pos = 0.0
+        article_com = 0.0
+        for sentence_sentiment in article_sentiment:
+            article_sent_count += 1
+            assange_sent_count += 1
+            assange_total_neg += sentence_sentiment['neg']
+            article_neg += sentence_sentiment['neg']
+
+            assange_total_pos += sentence_sentiment['pos']
+            article_pos += sentence_sentiment['pos']
+
+            assange_total_neu += sentence_sentiment['neu']
+            article_neu += sentence_sentiment['neu']
+
+            assange_total_com += sentence_sentiment['compound']
+            article_com += sentence_sentiment['compound']
+
+        assange_article_sentiments.append({'neg': (article_neg / article_sent_count),
+                                           'neu': (article_neu / article_sent_count),
+                                           'pos': (article_pos / article_sent_count),
+                                           'compound': (article_com / article_sent_count)})
+
+    count = len(assange_article_sentiments)
+    neg = 0.0
+    neu = 0.0
+    pos = 0.0
+    com = 0.0
+    for article_sentiment_avg in assange_article_sentiments:
+        neg += article_sentiment_avg['neg']
+        neu += article_sentiment_avg['neu']
+        pos += article_sentiment_avg['pos']
+        com += article_sentiment_avg['compound']
+
+    """
+    print("AVERAGE SENTIMENT INTENSITY OF EACH ARTICLE")
+    print("Average [neg]: {}".format((neg / count)))
+    print("Average [neu]: {}".format((neu / count)))
+    print("Average [pos]: {}".format((pos / count)))
+    print("Average [com]: {}".format((com / count)))
+    """
+
+    print("\nAVERAGE SENTIMENT INTENSITY")
+    print("Average [neg]: {}".format((assange_total_neg / assange_sent_count)))
+    print("Average [neu]: {}".format((assange_total_neu / assange_sent_count)))
+    print("Average [pos]: {}".format((assange_total_pos / assange_sent_count)))
+    print("Average [com]: {}".format((assange_total_com / assange_sent_count)))
+
+    assange_avg_sentence_sent = {'neg': assange_total_neg / assange_sent_count,
+                                 'neu': assange_total_neu / assange_sent_count,
+                                 'pos': assange_total_pos / assange_sent_count,
+                                 'compound': assange_total_com / assange_sent_count}
+
+    avg_title_sent_a = get_avg_title_sent("articles/assange/AssangeTitles.txt")
+    print("\nAVERAGE TITLE SENTIMENT:\nAverage [neg]: {}\nAverage [neu]: {}\nAverage [pos]: {}\nAverage [com]: {}\n"
+          .format(avg_title_sent_a['neg'], avg_title_sent_a['neu'], avg_title_sent_a['pos'],
+                  avg_title_sent_a['compound']))
+
+    # Number of doc Types
+    doc_types_a = get_doc_type_count("articles/assange/AssangeDocumentType.txt")
+    print(doc_types_a)
+
+    # page location
+    page_list_a = get_page_list("articles/assange/AssangePages.txt")
+    page_count_a = Counter(page_list_a)
+    print("\nAssange Times Appearing on Certain Page (most Common 10):\n{}".format(page_count_a.most_common(10)))
+
+    avg_page_a = mean(page_list_a)
+    print("\nAssange avg page location: {}".format(avg_page_a))
+
+    # -----------------------------------------------TABLE-------------------------------------------------------------
+    fig = go.Figure(data=[go.Table(
+        header=dict(values=['News Event', '# of Articles', 'Avg. Word Count', '# of Section Front Pages',
+                            '% Front Pages', 'Avg. Section Page'],
+                    fill_color='paleturquoise',
+                    align='left'),
+        cells=dict(values=[["Navalny", "Assange"], [len(navalny_article_list), len(assange_article_list)],
+                           [navalny_avg_word_count, assange_avg_word_count],
+                           [page_count_n[1], page_count_a[1]],
+                           ["{:0.2f}%".format((page_count_n[1] / len(navalny_article_list)) * 100),
+                            "{:0.2f}%".format((page_count_a[1] / len(assange_article_list)) * 100)],
+                           ["{:0.2f}".format(avg_page_n), "{:0.2f}".format(avg_page_a)]],
+                   fill_color='lavender',
+                   align='left'))
+    ])
+
+    fig.write_image("Assange_vs_Navalny.png")
+    fig.show()
+
+    fig2 = go.Figure(data=[go.Table(
+        header=dict(values=[],
+                    fill_color='black',
+                    align='left'),
+        cells=dict(values=[["Navalny", "", "", "", "",
+                            "Assange", "", "", "", ""],
+                           ["Average Title Sentiment Intensity",
+                            "Negative: {:0.2f}%".format(avg_title_sent_n['neg'] * 100),
+                            "Neutral: {:0.2f}%".format(avg_title_sent_n['neu'] * 100),
+                            "Neutral: {:0.2f}%".format(avg_title_sent_n['pos'] * 100),
+                            "Positive: {:0.2f}%".format(avg_title_sent_n['compound'] * 100),
+                            "",
+                            "Negative: {:0.2f}%".format(avg_title_sent_a['neg'] * 100),
+                            "Neutral: {:0.2f}%".format(avg_title_sent_a['neu'] * 100),
+                            "Positive: {:0.2f}%".format(avg_title_sent_a['pos'] * 100),
+                            "Compound: {:0.2f}%".format(avg_title_sent_a['compound'] * 100)],
+                           ["Average Sentence Sentiment Intensity",
+                            "Negative: {:0.2f}%".format(naval_avg_sentence_sent['neg'] * 100),
+                            "Neutral: {:0.2f}%".format(naval_avg_sentence_sent['neu'] * 100),
+                            "Positive: {:0.2f}%".format(naval_avg_sentence_sent['pos'] * 100),
+                            "Compound: {:0.2f}%".format(naval_avg_sentence_sent['compound'] * 100),
+                            "",
+                            "Negative: {:0.2f}% ".format(assange_avg_sentence_sent['neg'] * 100),
+                            "Neutral: {:0.2f}%".format(assange_avg_sentence_sent['neu'] * 100),
+                            "Positive: {:0.2f}%".format(assange_avg_sentence_sent['pos'] * 100),
+                            "Compound: {:0.2f}%".format(assange_avg_sentence_sent['compound'] * 100)]
+                           ],
+                   fill_color=[['paleturquoise', 'lavender', 'lavender', 'lavender', 'lavender',
+                                'paleturquoise', 'lavender', 'lavender', 'lavender', 'lavender'] * 3],
+                   align='center'))
+    ])
+    fig2.write_image("AssangeSent_vs_NavalnySent.png")
+    fig2.show()
 
 
 if __name__ == '__main__':

@@ -2642,10 +2642,6 @@ Oleg Matsnev and Sophia Kishkovsky contributed research.
 {END}
 
 {START}
-
-{END}
-
-{START}
 MOSCOW -- Alexei Navalny, the Russian opposition leader who recuperated in Germany from a near-deadly
 poisoning, returned to Moscow on Sunday and was arrested shortly after leaving his plane.
 The arrest of Navalny could set off an international backlash and protests at home. He has accused the Kremlin of
@@ -2738,6 +2734,9 @@ return to Russia had put Putin in a bind.
  "If Putin decides to arrest him on arrival, he'll certainly become the world's Political Prisoner No. 1 -- as with Nelson
 Mandela," Volkov said of Navalny. "The second alternative for Putin isn't any better. Leaving Navalny free would
 mean showing weakness in the eyes of his inner circle."
+{END}
+
+{START}
 The opposition leader has been recovering in Germany from a poisoning attack widely attributed to the Russian
 state.
 MOSCOW -- Aleksei A. Navalny, the Russian opposition leader who has been in Germany for months recovering
