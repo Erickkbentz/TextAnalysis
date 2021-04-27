@@ -43,13 +43,11 @@ def split_into_sentences(text):
 
 
 def is_adjective(word, pos):
-    skip = ["a", ",", ".", ":", "in", "and", ":", "PPROQUEST.COMPage", "to", "that", "``", "s", "''", "url=https",
-            "[", "*", "accountid=11107", "lLnkThe", "accountid=11107Copyright", "Julian", "Document", "EnglishDocument",
-            "t", "n't", "not", "now", "later", "last", "first", "many", "most", "then", "new", "also", "other", "even",
-            "so", "just", "never", "more", "as", "top", "only", "least", "same", "well", "few"]
+    skip = ["now", "later", "last", "first", "many", "most", "then", "new", "also", "other", "even",
+            "so", "just", "never", "more", "as", "top", "only", "least", "same", "well", "few", "such", "own"]
     if skip.__contains__(word):
         return False
-    if pos == 'JJ' or pos == 'JJS' or pos == 'JJR' or pos == "RB" or pos == "RBS":
+    if pos == 'JJ' or pos == 'JJS' or pos == 'JJR':
         return True
 
 
@@ -82,62 +80,24 @@ def split_bodies(path):
     return bodies
 
 
-def main():
-    f = open("navalFull.txt", "r+")
-    navalny = f.read()
-
-    text_navalny = word_tokenize(navalny)
-    tagged_navalny = nltk.pos_tag(text_navalny)
-    count_navalny = Counter(word for (word, pos) in tagged_navalny if is_adjective(word, pos))
-    print(count_navalny)
-
-    tagged_navalny.append()
-
-    f = open("naval.txt", "w+")
-    f.write("Naval\n\n")
-
-    naval_d = {}
-    for k, v in count_navalny.most_common(20):
-        f.write("{} {}\n".format(k, v))
-        naval_d[k] = v
-    f.close()
-
-    s = open("assangeFull.txt", "r+")
-    assange = s.read()
-
-    text_assange = word_tokenize(assange)
-    tagged_assange = nltk.pos_tag(text_assange)
-    count_assange = Counter(word for (word, pos) in tagged_assange if is_adjective(word, pos))
-    print(count_assange)
-
-    s = open("assange.txt", "w+")
-    s.write("Assange\n\n")
-
-    assange_d = {}
-    for k, v in count_assange.most_common(20):
-        s.write("{} {}\n".format(k, v))
-        assange_d[k] = v
-    s.close()
-
-
-def descriptors_chart(tagged, title, path):
-    a_keys = tagged.keys()
+def descriptors_chart(counter, title, path):
+    a_keys = counter.keys()
     y_pos = np.arange(len(a_keys))
     # get the counts for each key, assuming the values are numerical
-    performance = [tagged[k] for k in a_keys]
+    performance = [counter[k] for k in a_keys]
     # not sure if you want this :S
     plt.barh(y_pos, performance, align='center')
     plt.yticks(y_pos, a_keys)
     plt.subplots_adjust(left=0.2)
-    plt.xlabel('Counts per key')
+    plt.xlabel('Count per word')
     plt.title(title)
     plt.savefig(path, format="png")
     plt.show()
 
 
-def get_sentiment_analysis(paragraph_list):
+def get_sentiment_analysis_for_paragraph(paragraph):
     sentiment_list = []
-    str_list = split_into_sentences(paragraph_list[0])
+    str_list = split_into_sentences(paragraph)
     print(str_list)
     sia = SentimentIntensityAnalyzer()
 
@@ -148,8 +108,35 @@ def get_sentiment_analysis(paragraph_list):
     return sentiment_list
 
 
-if __name__ == '__main__':
-    bodies = split_bodies("articles/AssangeParagraphs.txt")
+def main():
+    navalny_article_list = split_bodies("articles/NavalnyParagraphs.txt")
+    count_navalny = Counter()
 
-    sent_list = get_sentiment_analysis(bodies)
-    print(sent_list)
+    for article in navalny_article_list:
+        token_words = word_tokenize(article)
+        navalny_tagged = nltk.pos_tag(token_words)
+        count_navalny.update(word for (word, pos) in navalny_tagged if is_adjective(word, pos))
+
+    navalny_d = {}
+    for k, v in count_navalny.most_common(25):
+        navalny_d[k] = v
+
+    descriptors_chart(navalny_d, "Navalny - 25 most used adjectives in articles", "navalAdjWords.png")
+
+    assange_article_list = split_bodies("articles/AssangeParagraphs.txt")
+    count_assange = Counter()
+
+    for article in assange_article_list:
+        token_words = word_tokenize(article)
+        assange_tagged = nltk.pos_tag(token_words)
+        count_assange.update(word for (word, pos) in assange_tagged if is_adjective(word, pos))
+
+    assange_d = {}
+    for k, v in count_assange.most_common(25):
+        assange_d[k] = v
+
+    descriptors_chart(assange_d, "Assange - 25 most used adjectives in articles", "assangeAdjWords.png")
+
+
+if __name__ == '__main__':
+    main()
