@@ -1,6 +1,9 @@
+from datetime import datetime
 from statistics import mean
+from time import strptime, strftime
 
 import PIL
+import dateutil
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import numpy as np
@@ -11,6 +14,7 @@ import nltk
 from nltk import word_tokenize
 from collections import Counter
 import re
+from dateutil.parser import parse
 
 alphabets = "([A-Za-z])"
 prefixes = "(Mr|St|Mrs|Ms|Dr)[.]"
@@ -151,6 +155,30 @@ def get_avg_title_sent(path):
     f.close()
     avg_title_sent = {'neg': (neg / count), 'pos': (pos / count), 'neu': (neu / count), 'compound': (com / count)}
     return avg_title_sent
+
+
+def get_publication_date_list_month(path):
+    f = open(path, "r+")
+    date_list = []
+    for line in f:
+        dt = parse(line)
+        date_list.append(dt)
+
+    return date_list
+
+
+def get_avg_articles_per_month(path):
+    date_list = get_publication_date_list_month(path)
+    num_months = get_month_range(date_list)
+
+    return len(date_list) / num_months
+
+
+def get_month_range(date_list):
+    dt_start = date_list[-1]
+    dt_end = date_list[0]
+    num_months = (dt_end.year - dt_start.year) * 12 + (dt_end.month - dt_start.month)
+    return num_months
 
 
 def main():
@@ -382,13 +410,27 @@ def main():
     avg_page_a = mean(page_list_a)
     print("\nAssange avg page location: {}".format(avg_page_a))
 
+    n_avg_per_month = get_avg_articles_per_month("articles/navalny/NavalnyPublicationDate.txt")
+    n_date_list = get_publication_date_list_month("articles/navalny/NavalnyPublicationDate.txt")
+    n_month_range = get_month_range(n_date_list)
+
+    a_avg_per_month = get_avg_articles_per_month("articles/assange/AssangePublicationDate.txt")
+    a_date_list = get_publication_date_list_month("articles/assange/AssangePublicationDate.txt")
+    a_month_range = get_month_range(a_date_list)
+
+    print()
+    print("NAVALNY- Range: {}, Amount: {}, Avg: {:0.2f}".format(n_month_range, len(n_date_list), n_avg_per_month))
+    print("ASSANGE- Range: {}, Amount: {}, Avg: {:0.2f}".format(a_month_range, len(n_date_list), a_avg_per_month))
+
     # -----------------------------------------------TABLE-------------------------------------------------------------
     fig = go.Figure(data=[go.Table(
-        header=dict(values=['News Event', '# of Articles', 'Avg. Word Count', '# of Section Front Pages',
-                            '% Front Pages', 'Avg. Section Page'],
+        header=dict(values=['News Event', '# of Articles', 'Avg. Articles per Month', 'Publication Date Range in Months',
+                            'Avg. Word Count', '# of Section Front Pages', '% Front Pages', 'Avg. Section Page'],
                     fill_color='paleturquoise',
                     align='left'),
         cells=dict(values=[["Navalny", "Assange"], [len(navalny_article_list), len(assange_article_list)],
+                           ["{:0.2f}".format(n_avg_per_month), "{:0.2f}".format(a_avg_per_month)],
+                           [n_month_range, a_month_range],
                            [navalny_avg_word_count, assange_avg_word_count],
                            [page_count_n[1], page_count_a[1]],
                            ["{:0.2f}%".format((page_count_n[1] / len(navalny_article_list)) * 100),
@@ -410,7 +452,7 @@ def main():
                            ["Average Title Sentiment Intensity",
                             "Negative: {:0.2f}%".format(avg_title_sent_n['neg'] * 100),
                             "Neutral: {:0.2f}%".format(avg_title_sent_n['neu'] * 100),
-                            "Neutral: {:0.2f}%".format(avg_title_sent_n['pos'] * 100),
+                            "Positive: {:0.2f}%".format(avg_title_sent_n['pos'] * 100),
                             "Compound: {:0.2f}%".format(avg_title_sent_n['compound'] * 100),
                             "",
                             "Negative: {:0.2f}%".format(avg_title_sent_a['neg'] * 100),
