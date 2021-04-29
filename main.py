@@ -52,8 +52,7 @@ def split_into_sentences(text):
 
 
 def is_adjective(word, pos):
-    skip = ["now", "later", "last", "first", "many", "most", "then", "new", "also", "other", "even",
-            "so", "just", "never", "more", "as", "top", "only", "least", "same", "well", "few", "such", "own", "Julian"]
+    skip = ["Julian"]
     if skip.__contains__(word):
         return False
     if pos == 'JJ' or pos == 'JJS' or pos == 'JJR':
