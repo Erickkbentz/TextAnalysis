@@ -1,9 +1,5 @@
-from datetime import datetime
 from statistics import mean
-from time import strptime, strftime
-
 import PIL
-import dateutil
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import numpy as np
@@ -134,6 +130,10 @@ def get_page_list(path):
     return page_list
 
 
+article_sent_assange_dict = {}
+article_sent_navalny_dict = {}
+
+
 def get_avg_title_sent(path):
     f = open(path, "r+")
 
@@ -143,9 +143,14 @@ def get_avg_title_sent(path):
     neu = 0.0
     com = 0.0
     sia = SentimentIntensityAnalyzer()
+
     for line in f:
         count += 1
         sent = sia.polarity_scores(line)
+        if path.__contains__("assange"):
+            article_sent_assange_dict[line] = sent['neg']
+        if path.__contains__("navalny"):
+            article_sent_navalny_dict[line] = sent['neg']
         neg += sent['neg']
         pos += sent['pos']
         neu += sent['neu']
@@ -154,6 +159,21 @@ def get_avg_title_sent(path):
     f.close()
     avg_title_sent = {'neg': (neg / count), 'pos': (pos / count), 'neu': (neu / count), 'compound': (com / count)}
     return avg_title_sent
+
+
+def get_title_sent_stats(article_sent_dic):
+    title_least = [k for k, v in article_sent_dic.items() if v == 0.0]
+    title_most = [k for k, v in article_sent_dic.items() if v >= 0.5]
+
+    print("LEAST NEGATIVE TITLES: {}".format(title_least))
+    print("Number of titles: {}".format(len(title_least)))
+    print("Percent of tiles: {:0.2f}%".format(len(title_least) / (len(article_sent_dic.items())) * 100))
+    print("Neg: 0%")
+
+    print("\nMOST NEGATIVE TITLES: {}".format(title_most))
+    print("Number of titles: {}".format(len(title_most)))
+    print("Percent of titles: {:0.2f}%".format(len(title_most) / (len(article_sent_dic.items())) * 100))
+    print("Neg: >= 50%")
 
 
 def get_publication_date_list_month(path):
@@ -408,6 +428,7 @@ def main():
 
     avg_page_a = mean(page_list_a)
     print("\nAssange avg page location: {}".format(avg_page_a))
+    print("\n------------------------------------------------------------------\n")
 
     n_avg_per_month = get_avg_articles_per_month("articles/navalny/NavalnyPublicationDate.txt")
     n_date_list = get_publication_date_list_month("articles/navalny/NavalnyPublicationDate.txt")
@@ -423,10 +444,11 @@ def main():
 
     # -----------------------------------------------TABLE-------------------------------------------------------------
     fig = go.Figure(data=[go.Table(
-        header=dict(values=['News Event', '# of Articles', 'Avg. Articles per Month', 'Publication Date Range in Months',
-                            'Avg. Word Count', '# of Section Front Pages', '% Front Pages', 'Avg. Section Page'],
-                    fill_color='paleturquoise',
-                    align='left'),
+        header=dict(
+            values=['News Event', '# of Articles', 'Avg. Articles per Month', 'Publication Date Range in Months',
+                    'Avg. Word Count', '# of Section Front Pages', '% Front Pages', 'Avg. Section Page'],
+            fill_color='paleturquoise',
+            align='left'),
         cells=dict(values=[["Navalny", "Assange"], [len(navalny_article_list), len(assange_article_list)],
                            ["{:0.2f}".format(n_avg_per_month), "{:0.2f}".format(a_avg_per_month)],
                            [n_month_range, a_month_range],
@@ -483,6 +505,14 @@ def main():
     dst.paste(im1, (0, 0))
     dst.paste(im2, (im1.width, 0))
     dst.save('Naval&AssangeAdj.png')
+
+    print("\nNavalny:")
+    print("All NAVALNY TITLES AND NEGATIVE SENTIMENT: {}\n".format(article_sent_navalny_dict))
+    get_title_sent_stats(article_sent_navalny_dict)
+
+    print("\nAssange:")
+    print("All ASSANGE TITLES AND NEGATIVE SENTIMENT: {}\n".format(article_sent_assange_dict))
+    get_title_sent_stats(article_sent_assange_dict)
 
 
 if __name__ == '__main__':
